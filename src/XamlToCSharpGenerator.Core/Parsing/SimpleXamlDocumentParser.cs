@@ -112,6 +112,7 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
             var ignoredNamespaces = CollectIgnoredNamespaces(root, xmlNamespaces);
             var rootObject = ParseObjectNode(
                 root,
+                xmlNamespaces,
                 ignoredNamespaces,
                 conditionalNamespacesByRawUri,
                 diagnostics,
@@ -189,6 +190,7 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
 
     private XamlObjectNode ParseObjectNode(
         XElement element,
+        ImmutableDictionary<string, string> xmlNamespaces,
         ImmutableHashSet<string> ignoredNamespaces,
         ImmutableDictionary<string, ConditionalXamlExpression> conditionalNamespacesByRawUri,
         ImmutableArray<DiagnosticInfo>.Builder diagnostics,
@@ -198,7 +200,9 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
         var childObjects = ImmutableArray.CreateBuilder<XamlObjectNode>();
         var propertyElements = ImmutableArray.CreateBuilder<XamlPropertyElement>();
         var constructorArguments = ImmutableArray.CreateBuilder<XamlObjectNode>();
-        var elementXmlNamespace = XamlConditionalNamespaceUtilities.NormalizeXmlNamespace(element.Name.NamespaceName);
+        var elementXmlNamespace = NormalizeElementXmlNamespace(
+            XamlConditionalNamespaceUtilities.NormalizeXmlNamespace(element.Name.NamespaceName),
+            xmlNamespaces);
         var elementCondition = XamlConditionalNamespaceUtilities.TryGetConditionalExpression(
             element.Name.NamespaceName,
             conditionalNamespacesByRawUri);
@@ -325,6 +329,7 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
 
                     constructorArguments.Add(ParseObjectNode(
                         objectValue,
+                        xmlNamespaces,
                         ignoredNamespaces,
                         conditionalNamespacesByRawUri,
                         diagnostics,
@@ -346,6 +351,7 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
 
                     objectValues.Add(ParseObjectNode(
                         objectValue,
+                        xmlNamespaces,
                         ignoredNamespaces,
                         conditionalNamespacesByRawUri,
                         diagnostics,
@@ -357,7 +363,9 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
                 var propertyElementRawTextContent = TryGetRawInlineTextContent(child);
                 propertyElements.Add(new XamlPropertyElement(
                     PropertyName: ExtractPropertyElementName(child.Name.LocalName),
-                    XmlNamespace: child.Name.NamespaceName,
+                    XmlNamespace: NormalizeElementXmlNamespace(
+                        XamlConditionalNamespaceUtilities.NormalizeXmlNamespace(child.Name.NamespaceName),
+                        xmlNamespaces),
                     ObjectValues: objectValues.ToImmutable(),
                     Condition: XamlConditionalNamespaceUtilities.TryGetConditionalExpression(
                         child.Name.NamespaceName,
@@ -376,6 +384,7 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
 
             childObjects.Add(ParseObjectNode(
                 child,
+                xmlNamespaces,
                 ignoredNamespaces,
                 conditionalNamespacesByRawUri,
                 diagnostics,
@@ -404,6 +413,21 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
             Line: elementLineInfo.HasLineInfo() ? elementLineInfo.LineNumber : 1,
             Column: elementLineInfo.HasLineInfo() ? elementLineInfo.LinePosition : 1,
             RawTextContent: rawTextContent);
+    }
+
+    private static string NormalizeElementXmlNamespace(
+        string elementXmlNamespace,
+        ImmutableDictionary<string, string> xmlNamespaces)
+    {
+        if (!string.IsNullOrWhiteSpace(elementXmlNamespace))
+        {
+            return elementXmlNamespace;
+        }
+
+        return xmlNamespaces.TryGetValue(string.Empty, out var defaultNamespace) &&
+               !string.IsNullOrWhiteSpace(defaultNamespace)
+            ? defaultNamespace
+            : string.Empty;
     }
 
     private static void ReportInvalidSharedDirective(

@@ -185,7 +185,18 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
             "Style" or
             "ControlTheme" or
             "DataTemplate" or
-            "TreeDataTemplate");
+            "TreeDataTemplate" or
+            // WPF asset XAML (for example icon dictionaries under Images/*.xaml)
+            // is commonly classless and should compile as a resource without warnings.
+            "DrawingGroup" or
+            "DrawingImage" or
+            "GeometryDrawing" or
+            "PathGeometry" or
+            "StreamGeometry" or
+            "GeometryGroup" or
+            "TransformGroup" or
+            "Brush" or
+            "DrawingBrush");
     }
 
     private XamlObjectNode ParseObjectNode(

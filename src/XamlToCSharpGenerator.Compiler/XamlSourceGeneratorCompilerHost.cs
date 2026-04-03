@@ -1653,6 +1653,13 @@ public static class XamlSourceGeneratorCompilerHost
 
     private static bool HasOnlyPartialSourceDeclarations(INamedTypeSymbol typeSymbol)
     {
+        if (!string.Equals(typeSymbol.Language, LanguageNames.CSharp, StringComparison.Ordinal))
+        {
+            // The current partial-type validation is C# syntax-based.
+            // Skip this validation for non-C# projects (for example VB) to avoid false positives.
+            return true;
+        }
+
         var sawSourceDeclaration = false;
         foreach (var syntaxReference in typeSymbol.DeclaringSyntaxReferences)
         {

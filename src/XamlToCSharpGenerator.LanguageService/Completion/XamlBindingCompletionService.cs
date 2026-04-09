@@ -26,19 +26,39 @@ internal static class XamlBindingCompletionService
         out ImmutableArray<XamlCompletionItem> completions)
     {
         completions = ImmutableArray<XamlCompletionItem>.Empty;
-        if (!TryFindAttributeContext(analysis, position, out var element, out var attribute, out var caretOffsetInValue) ||
-            !TryCreateBindingEditContext(attribute.Value, caretOffsetInValue, out var context))
+        if (!TryFindAttributeContext(analysis, position, out var element, out var attribute, out var caretOffsetInValue))
         {
             return false;
         }
+
+        if (!TryCreateBindingEditContext(attribute.Value, caretOffsetInValue, out var context))
+        {
+            Console.Error.WriteLine(
+                $"[WPF-LS Cmpl] TryCreateBindingEditContext failed: " +
+                $"attr={attribute.Name.LocalName}, value={attribute.Value ?? "(null)"}, caret={caretOffsetInValue}");
+            return false;
+        }
+
+        Console.Error.WriteLine(
+            $"[WPF-LS Cmpl] binding edit context: kind={context.ExtensionKind}, " +
+            $"attr={attribute.Name.LocalName}, value={attribute.Value ?? "(null)"}, " +
+            $"path={context.BindingMarkup.Path ?? "(null)"}, pathPrefix='{context.PathPrefix}'");
 
         var isXBind = context.ExtensionKind == XamlMarkupExtensionKind.XBind;
         if (!(isXBind
                 ? XamlSemanticSourceTypeResolver.TryResolveXBindSourceType(analysis, element, context.XBindMarkup, out var sourceType, out var prefixMap)
                 : XamlSemanticSourceTypeResolver.TryResolveBindingSourceType(analysis, element, context.BindingMarkup, out sourceType, out prefixMap)))
         {
+            Console.Error.WriteLine(
+                $"[WPF-LS Cmpl] TryResolveBindingSourceType failed for <{element.Name.LocalName}> " +
+                $"(hasTypeIndex={analysis.TypeIndex is not null}, hasCompilation={analysis.Compilation is not null}, " +
+                $"compilationAssembly={analysis.Compilation?.Assembly?.Name ?? "(null)"}, " +
+                $"docVersion={analysis.Document.Version})");
             return false;
         }
+
+        Console.Error.WriteLine(
+            $"[WPF-LS Cmpl] source type resolved: {sourceType.ToDisplayString()}");
 
         if (isXBind &&
             TryGetTopLevelXBindCompletions(
@@ -62,6 +82,8 @@ internal static class XamlBindingCompletionService
                 out var memberPrefix,
                 out var staticOnly))
         {
+            Console.Error.WriteLine(
+                $"[WPF-LS Cmpl] TryResolveReceiverType failed: pathPrefix='{context.PathPrefix}'");
             return false;
         }
 

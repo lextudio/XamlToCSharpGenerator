@@ -14,6 +14,8 @@ namespace XamlToCSharpGenerator.LanguageService.Completion;
 
 internal static class XamlSemanticSourceTypeResolver
 {
+    private static readonly MarkupExpressionParser MarkupParser = new();
+
     public static bool TryResolveBindingSourceType(
         XamlAnalysisResult analysis,
         XElement element,
@@ -199,21 +201,85 @@ internal static class XamlSemanticSourceTypeResolver
         {
             var dataTypeAttribute = current.Attributes()
                 .FirstOrDefault(static attribute => string.Equals(attribute.Name.LocalName, "DataType", StringComparison.Ordinal));
-            if (dataTypeAttribute is null)
+            if (dataTypeAttribute is not null)
             {
-                continue;
+                var dataTypePrefixMap = XamlTypeReferenceNavigationResolver.BuildPrefixMapForElement(current);
+                var dataTypeType = ResolveTypeSymbol(analysis, dataTypePrefixMap, dataTypeAttribute.Value);
+                if (dataTypeType is not null)
+                {
+                    sourceTypeSymbol = dataTypeType;
+                    prefixMap = dataTypePrefixMap;
+                    return true;
+                }
             }
 
-            var dataTypePrefixMap = XamlTypeReferenceNavigationResolver.BuildPrefixMapForElement(current);
-            var dataTypeType = ResolveTypeSymbol(analysis, dataTypePrefixMap, dataTypeAttribute.Value);
-            if (dataTypeType is null)
+            // WPF blend design-time hint: d:DataContext="{d:DesignInstance vm:MyViewModel}"
+            // The local name is "DataContext" and the namespace is the blend/design namespace.
+            var designDataContextAttribute = current.Attributes()
+                .FirstOrDefault(static a =>
+                    string.Equals(a.Name.LocalName, "DataContext", StringComparison.Ordinal) &&
+                    !string.IsNullOrEmpty(a.Name.NamespaceName) &&
+                    a.Name.NamespaceName.IndexOf("blend", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (designDataContextAttribute is not null &&
+                TryExtractDesignInstanceType(designDataContextAttribute.Value, out var designInstanceTypeToken))
             {
-                continue;
-            }
+                Console.Error.WriteLine(
+                    $"[WPF-LS Cmpl] d:DesignInstance on <{current.Name.LocalName}>: " +
+                    $"typeToken='{designInstanceTypeToken}', " +
+                    $"hasTypeIndex={analysis.TypeIndex is not null}, " +
+                    $"hasCompilation={analysis.Compilation is not null}");
+                var designPrefixMap = XamlTypeReferenceNavigationResolver.BuildPrefixMapForElement(current);
+                Console.Error.WriteLine(
+                    $"[WPF-LS Cmpl]   prefixMap keys: [{string.Join(", ", designPrefixMap.Keys.Select(static k => string.IsNullOrEmpty(k) ? "(default)" : k))}]");
+                var designType = ResolveTypeSymbol(analysis, designPrefixMap, designInstanceTypeToken);
+                if (designType is not null)
+                {
+                    Console.Error.WriteLine(
+                        $"[WPF-LS Cmpl] d:DesignInstance resolved: {designType.ToDisplayString()} " +
+                        $"(compilationAssembly={analysis.Compilation?.Assembly?.Name ?? "(null)"})");
+                    sourceTypeSymbol = designType;
+                    prefixMap = designPrefixMap;
+                    return true;
+                }
 
-            sourceTypeSymbol = dataTypeType;
-            prefixMap = dataTypePrefixMap;
-            return true;
+                Console.Error.WriteLine(
+                    $"[WPF-LS Cmpl] d:DesignInstance type '{designInstanceTypeToken}' could not be resolved");
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to extract the type token from a <c>d:DesignInstance</c> markup extension value,
+    /// e.g. <c>{d:DesignInstance vm:LoginViewModel}</c> → <c>vm:LoginViewModel</c>.
+    /// </summary>
+    private static bool TryExtractDesignInstanceType(string attributeValue, out string typeToken)
+    {
+        typeToken = string.Empty;
+        if (!MarkupParser.TryParseMarkupExtension(attributeValue, out var markup))
+        {
+            return false;
+        }
+
+        // Accept "DesignInstance" / "d:DesignInstance" / "DesignInstanceExtension" etc.
+        if (!XamlMarkupExtensionNameSemantics.Matches(markup.Name, "DesignInstance"))
+        {
+            return false;
+        }
+
+        // Positional arg: {d:DesignInstance vm:Type}
+        if (markup.PositionalArguments.Length > 0)
+        {
+            typeToken = markup.PositionalArguments[0].Trim();
+            return !string.IsNullOrEmpty(typeToken);
+        }
+
+        // Named arg: {d:DesignInstance Type=vm:Type}
+        if (markup.NamedArguments.TryGetValue("Type", out var namedType))
+        {
+            typeToken = namedType.Trim();
+            return !string.IsNullOrEmpty(typeToken);
         }
 
         return false;
@@ -297,6 +363,24 @@ internal static class XamlSemanticSourceTypeResolver
             return ResolveTypeSymbolByFullTypeName(analysis.Compilation, typeInfo.FullTypeName);
         }
 
+        // Log a diagnostic when the TypeIndex path misses so we know to check
+        // the fallback resolution path.
+        if (analysis.TypeIndex is not null)
+        {
+            // Reconstruct what the TypeIndex lookup attempted, for diagnostics.
+            XamlXmlNamespaceResolver.TryResolveXmlNamespace(prefixMap, normalizedTypeToken, out var dbgXmlNs, out var dbgTypeName);
+            var dbgAssemblyName = analysis.Compilation?.Assembly?.Name ?? "(null)";
+            var dbgDirectLookup = analysis.Compilation?.GetTypeByMetadataName(
+                string.IsNullOrEmpty(dbgXmlNs) ? dbgTypeName : dbgXmlNs.Replace("clr-namespace:", "") + "." + dbgTypeName);
+            Console.Error.WriteLine(
+                $"[WPF-LS Cmpl] TypeIndex miss for '{normalizedTypeToken}' — " +
+                $"xmlNs='{dbgXmlNs}', typeName='{dbgTypeName}', " +
+                $"prefixMapHasPrefixes=[{string.Join(", ", prefixMap.Keys.Select(static k => string.IsNullOrEmpty(k) ? "(default)" : k))}] " +
+                $"compilationAssembly='{dbgAssemblyName}', " +
+                $"directRoslynLookup={dbgDirectLookup?.ToDisplayString() ?? "(null)"} " +
+                $"— trying Roslyn fallback");
+        }
+
         if (XamlTypeReferenceNavigationResolver.TryResolve(
                 analysis,
                 prefixMap,
@@ -307,6 +391,8 @@ internal static class XamlSemanticSourceTypeResolver
             return ResolveTypeSymbolByFullTypeName(analysis.Compilation, resolvedTypeReference.FullTypeName);
         }
 
+        Console.Error.WriteLine(
+            $"[WPF-LS Cmpl] ResolveTypeSymbol failed for '{normalizedTypeToken}' (both TypeIndex and Roslyn fallback)");
         return null;
     }
 

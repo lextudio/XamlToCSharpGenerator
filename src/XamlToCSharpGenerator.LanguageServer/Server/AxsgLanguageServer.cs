@@ -765,6 +765,10 @@ public sealed class AxsgLanguageServer : IDisposable
             _navigationOptions,
             cancellationToken).ConfigureAwait(false);
 
+        Console.Error.WriteLine(
+            $"[AXSG-LS] completion: {System.IO.Path.GetFileName(request.Uri)} " +
+            $"L{request.Position.Line + 1}:C{request.Position.Character + 1} → {completions.Length} item(s)");
+
         var items = new JsonArray();
         foreach (var completion in completions)
         {

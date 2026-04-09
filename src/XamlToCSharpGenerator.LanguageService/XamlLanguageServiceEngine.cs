@@ -834,10 +834,16 @@ public sealed class XamlLanguageServiceEngine : IDisposable
     /// </summary>
     public void InvalidateAllOpenDocumentCaches()
     {
-        foreach (var uri in _uriGenerations.Keys)
-        {
+        // Collect every URI that has a cached analysis, including those at
+        // generation=0 that have never been explicitly invalidated before.
+        // Without this, _uriGenerations.Keys is empty on the first call (after
+        // prewarm) and no cache entries are invalidated.
+        var uris = new HashSet<string>(_uriGenerations.Keys);
+        foreach (var key in _analysisCache.Keys)
+            uris.Add(key.Uri);
+
+        foreach (var uri in uris)
             InvalidateUriCaches(uri);
-        }
     }
 
     private static PositionRequestCacheKey BuildPositionRequestCacheKey(

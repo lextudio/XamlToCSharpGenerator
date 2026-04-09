@@ -54,6 +54,9 @@ public sealed class TieredCompilationProvider : ICompilationProvider
     // from the prewarm task is immediately visible on the request thread.
     private volatile bool _fullProviderReady;
 
+    // Track the last logged tier to suppress per-request repetition.
+    private volatile bool _lastLoggedTierWasFull = false;
+
     /// <summary>
     /// Optional callback invoked when the background prewarm completes.
     /// Called from <see cref="PrewarmAsync"/> after <c>_fullProviderReady</c> is set to true.
@@ -89,23 +92,53 @@ public sealed class TieredCompilationProvider : ICompilationProvider
         if (_fullProviderReady || _fastSnapshot is null)
         {
             // Tier 2: full MSBuild compilation (or no fast snapshot available).
-            Console.Error.WriteLine(
-                $"[AXSG-LS] Completion tier: FULL for {Path.GetFileName(filePath)}");
+            // Only log on the first transition from Tier 1 → Tier 2 to avoid per-request noise.
+            if (!_lastLoggedTierWasFull)
+            {
+                _lastLoggedTierWasFull = true;
+                Console.Error.WriteLine(
+                    $"[AXSG-LS] Completion tier: FULL (first time) for {Path.GetFileName(filePath)}");
+            }
             return _fullProvider.GetCompilationAsync(filePath, workspaceRoot, cancellationToken);
         }
 
         // Tier 1: fast framework snapshot — synchronous, no wait.
-        Console.Error.WriteLine(
-            $"[AXSG-LS] Completion tier: FAST (MSBuild loading) for {Path.GetFileName(filePath)}");
+        // Only log once; suppress repetitive per-keystroke messages.
+        if (_lastLoggedTierWasFull)
+        {
+            _lastLoggedTierWasFull = false;
+            Console.Error.WriteLine(
+                $"[AXSG-LS] Completion tier: FAST (reverted) for {Path.GetFileName(filePath)}");
+        }
         return Task.FromResult(_fastSnapshot);
     }
 
     public void Invalidate(string filePath)
     {
-        // Reset so a project file change causes the full compilation to be
-        // reloaded rather than serving stale data.
-        _fullProviderReady = false;
+        // Only reset the tier for project file changes (.csproj/.vbproj/.fsproj)
+        // that affect the Roslyn compilation.  XAML file edits do not change the
+        // compilation — they only need the analysis cache to be rebuilt, which the
+        // caller handles separately via InvalidateUriCaches.  Resetting the tier
+        // on every XAML keystroke would revert to Tier-1 and lose user-type
+        // resolution until the next prewarm completes.
+        if (IsProjectFile(filePath))
+        {
+            _fullProviderReady = false;
+        }
+
         _fullProvider.Invalidate(filePath);
+    }
+
+    private static bool IsProjectFile(string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return false;
+        }
+
+        return filePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
+               filePath.EndsWith(".vbproj", StringComparison.OrdinalIgnoreCase) ||
+               filePath.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase);
     }
 
     public void Dispose() => _fullProvider.Dispose();

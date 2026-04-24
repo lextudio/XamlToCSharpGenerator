@@ -712,41 +712,59 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
         var items = new List<XamlNamedElement>();
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
 
-        Traverse(root);
+        Traverse(root, isInsideNestedNameScope: false);
         return items.ToImmutableArray();
 
-        void Traverse(XamlObjectNode node)
+        void Traverse(XamlObjectNode node, bool isInsideNestedNameScope)
         {
-            var name = node.Name;
-            if (name is not null && !string.IsNullOrWhiteSpace(name) && seenNames.Add(name))
+            if (!isInsideNestedNameScope)
             {
-                items.Add(new XamlNamedElement(
-                    Name: name,
-                    XmlNamespace: node.XmlNamespace,
-                    XmlTypeName: node.XmlTypeName,
-                    FieldModifier: node.FieldModifier,
-                    Line: node.Line,
-                    Column: node.Column));
+                var name = node.Name;
+                if (name is not null && !string.IsNullOrWhiteSpace(name) && seenNames.Add(name))
+                {
+                    items.Add(new XamlNamedElement(
+                        Name: name,
+                        XmlNamespace: node.XmlNamespace,
+                        XmlTypeName: node.XmlTypeName,
+                        FieldModifier: node.FieldModifier,
+                        Line: node.Line,
+                        Column: node.Column));
+                }
             }
+
+            var childInsideNestedNameScope = isInsideNestedNameScope || CreatesNestedNameScope(node);
 
             foreach (var child in node.ChildObjects)
             {
-                Traverse(child);
+                Traverse(child, childInsideNestedNameScope);
             }
 
             foreach (var constructorArgument in node.ConstructorArguments)
             {
-                Traverse(constructorArgument);
+                Traverse(constructorArgument, childInsideNestedNameScope);
             }
 
             foreach (var propertyElement in node.PropertyElements)
             {
                 foreach (var objectValue in propertyElement.ObjectValues)
                 {
-                    Traverse(objectValue);
+                    Traverse(objectValue, childInsideNestedNameScope);
                 }
             }
         }
+    }
+
+    private static bool CreatesNestedNameScope(XamlObjectNode node)
+    {
+        return node.XmlTypeName switch
+        {
+            "ControlTemplate" => true,
+            "DataTemplate" => true,
+            "HierarchicalDataTemplate" => true,
+            "ItemsPanelTemplate" => true,
+            "TreeDataTemplate" => true,
+            _ => false
+        };
     }
 
     

@@ -13,6 +13,7 @@ public sealed record ResolvedViewModel(
     bool EmitNameScopeRegistration,
     bool EmitStaticResourceResolver,
     bool HasXBind,
+    bool HasUserOnStartupOverride,
     ResolvedObjectNode RootObject,
     ImmutableArray<ResolvedNamedElement> NamedElements,
     ImmutableArray<ResolvedResourceDefinition> Resources,

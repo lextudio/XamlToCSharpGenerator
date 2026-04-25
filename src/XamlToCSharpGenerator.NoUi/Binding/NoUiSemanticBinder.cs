@@ -39,6 +39,7 @@ public sealed class NoUiSemanticBinder : IXamlFrameworkSemanticBinder
             EmitNameScopeRegistration: false,
             EmitStaticResourceResolver: false,
             HasXBind: false,
+            HasUserOnStartupOverride: false,
             rootObject,
             NamedElements: ImmutableArray<ResolvedNamedElement>.Empty,
             Resources: ImmutableArray<ResolvedResourceDefinition>.Empty,

@@ -776,6 +776,7 @@ public sealed partial class AvaloniaSemanticBinder : IXamlSemanticBinder
                 EmitNameScopeRegistration: context.EmitNameScopeRegistration,
                 EmitStaticResourceResolver: context.EmitStaticResourceResolver,
                 HasXBind: context.HasXBind,
+                HasUserOnStartupOverride: false,
                 RootObject: root,
                 NamedElements: context.NamedElements.ToImmutable(),
                 Resources: context.Resources,

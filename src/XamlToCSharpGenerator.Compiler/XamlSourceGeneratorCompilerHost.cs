@@ -605,6 +605,12 @@ public static class XamlSourceGeneratorCompilerHost
             {
                 descriptor = WithSeverity(descriptor, DiagnosticSeverity.Error);
             }
+            else if (!diagnostic.IsError && descriptor.DefaultSeverity == DiagnosticSeverity.Error)
+            {
+                // A non-error diagnostic (e.g. StrictMode=false) fell through to InternalError
+                // because its ID is not yet registered in this switch. Respect the intended severity.
+                descriptor = WithSeverity(descriptor, DiagnosticSeverity.Warning);
+            }
 
             var location = CreateLocation(diagnostic.FilePath, diagnostic.Line, diagnostic.Column);
 

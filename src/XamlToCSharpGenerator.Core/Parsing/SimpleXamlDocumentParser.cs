@@ -61,7 +61,7 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
                 .FirstOrDefault(attribute => attribute.Name == Xaml2006 + "Class");
 
             string? classFullName = null;
-            if (classAttribute is null || string.IsNullOrWhiteSpace(classAttribute.Value) || !classAttribute.Value.Contains('.'))
+            if (classAttribute is null || string.IsNullOrWhiteSpace(classAttribute.Value))
             {
                 if (ShouldReportMissingClassDirective(root))
                 {
@@ -76,7 +76,7 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
             }
             else
             {
-                classFullName = classAttribute.Value;
+                classFullName = classAttribute.Value.Trim();
             }
 
             var classModifierAttribute = TryGetDirectiveAttribute(root, "ClassModifier");

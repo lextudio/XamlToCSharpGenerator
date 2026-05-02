@@ -201,6 +201,33 @@ public class SimpleXamlDocumentParserTests
     }
 
     [Fact]
+    public void Parse_GlobalNamespace_XClass_Is_Preserved()
+    {
+        var parser = CreateAvaloniaParser();
+        var input = new XamlFileInput(
+            FilePath: "CommonResources.xaml",
+            TargetPath: "Pads/CommonResources.xaml",
+            SourceItemGroup: "AvaloniaXaml",
+            Text: """
+                  <ResourceDictionary xmlns="https://github.com/avaloniaui"
+                                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                                      x:Class="CommonResources">
+                      <SolidColorBrush x:Key="AccentBrush" Color="Blue" />
+                  </ResourceDictionary>
+                  """);
+
+        var (document, diagnostics) = parser.Parse(input);
+
+        Assert.NotNull(document);
+        Assert.Empty(diagnostics.Where(x => x.IsError));
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Id == "AXSG0002");
+        Assert.Equal("CommonResources", document!.ClassFullName);
+        Assert.Equal(string.Empty, document.ClassNamespace);
+        Assert.Equal("CommonResources", document.ClassName);
+        Assert.Single(document.Resources);
+    }
+
+    [Fact]
     public void Parse_Normalizes_AvaloniaResource_TargetPath_Prefix()
     {
         var parser = CreateAvaloniaParser();

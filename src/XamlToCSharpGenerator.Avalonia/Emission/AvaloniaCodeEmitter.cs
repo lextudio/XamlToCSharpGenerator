@@ -5526,8 +5526,9 @@ public sealed class AvaloniaCodeEmitter : IXamlCodeEmitter
     {
         return value.Replace("\\", "\\\\")
             .Replace("\"", "\\\"")
-            .Replace("\r", string.Empty)
-            .Replace("\n", "\\n");
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n")
+            .Replace("\t", "\\t");
     }
 
     private static string EscapeComment(string value)

@@ -89,6 +89,9 @@ public sealed class XamlCompilerAnalysisService
                         ImmutableArray.Create(partialClassDiagnostic),
                         source: "AXSG.Semantic"));
                 }
+
+                // Extract Roslyn compilation diagnostics (includes errors from x:Code blocks)
+                AddRoslynCompilationDiagnostics(diagnostics, snapshot.Compilation);
             }
         }
 
@@ -194,6 +197,57 @@ public sealed class XamlCompilerAnalysisService
         }
 
         return sawSourceDeclaration;
+    }
+
+    private static void AddRoslynCompilationDiagnostics(
+        ImmutableArray<LanguageServiceDiagnostic>.Builder diagnostics,
+        Compilation? compilation)
+    {
+        if (compilation is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var roslynDiagnostics = compilation.GetDiagnostics();
+            foreach (var diagnostic in roslynDiagnostics)
+            {
+                // Skip warnings and non-error diagnostics for cleaner output
+                if (diagnostic.Severity != DiagnosticSeverity.Error)
+                {
+                    continue;
+                }
+
+                var location = diagnostic.Location;
+                if (location == Location.None)
+                {
+                    continue;
+                }
+
+                var lineSpan = location.GetLineSpan();
+                var startLine = lineSpan.StartLinePosition.Line;
+                var startChar = lineSpan.StartLinePosition.Character;
+                var endLine = lineSpan.EndLinePosition.Line;
+                var endChar = lineSpan.EndLinePosition.Character;
+
+                var lsDiagnostic = new LanguageServiceDiagnostic(
+                    Code: diagnostic.Id,
+                    Message: diagnostic.GetMessage(),
+                    Severity: LanguageServiceDiagnosticSeverity.Error,
+                    Range: new SourceRange(
+                        Start: new SourcePosition(startLine, startChar),
+                        End: new SourcePosition(endLine, endChar)),
+                    Source: "Roslyn");
+
+                diagnostics.Add(lsDiagnostic);
+            }
+        }
+        catch (Exception ex)
+        {
+            // If GetDiagnostics fails, silently skip rather than crash
+            System.Diagnostics.Debug.WriteLine($"Failed to extract Roslyn diagnostics: {ex.Message}");
+        }
     }
 
     private static class CSharpCompilationFactory

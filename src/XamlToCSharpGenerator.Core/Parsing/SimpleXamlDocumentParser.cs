@@ -132,6 +132,7 @@ public sealed class SimpleXamlDocumentParser : IXamlDocumentParser
                 Styles: ImmutableArray<XamlStyleDefinition>.Empty,
                 ControlThemes: ImmutableArray<XamlControlThemeDefinition>.Empty,
                 Includes: ImmutableArray<XamlIncludeDefinition>.Empty,
+                CodeBlocks: ImmutableArray<XamlCodeBlockDefinition>.Empty,
                 IsValid: true);
 
             if (_documentEnrichers.Length > 0)

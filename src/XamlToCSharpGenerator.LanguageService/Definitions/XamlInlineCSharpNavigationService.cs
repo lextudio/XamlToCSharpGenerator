@@ -759,12 +759,21 @@ internal static class XamlInlineCSharpNavigationService
 
     private static bool IsInlineCSharpElement(XElement element)
     {
-        if (!string.Equals(element.Name.LocalName, "CSharp", StringComparison.Ordinal))
+        var localName = element.Name.LocalName;
+        var namespaceName = element.Name.NamespaceName;
+
+        // WPF x:Code support
+        if (string.Equals(localName, "Code", StringComparison.Ordinal) &&
+            string.Equals(namespaceName, "http://schemas.microsoft.com/winfx/2006/xaml", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (!string.Equals(localName, "CSharp", StringComparison.Ordinal))
         {
             return false;
         }
 
-        var namespaceName = element.Name.NamespaceName;
         return string.Equals(namespaceName, RuntimeUsingNamespace, StringComparison.Ordinal) ||
                string.Equals(namespaceName, RuntimeClrNamespaceUri, StringComparison.Ordinal) ||
                string.Equals(namespaceName, RuntimeMarkupUsingNamespace, StringComparison.Ordinal) ||

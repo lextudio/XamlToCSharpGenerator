@@ -18,6 +18,7 @@ public sealed record XamlDocumentModel(
     ImmutableArray<XamlStyleDefinition> Styles,
     ImmutableArray<XamlControlThemeDefinition> ControlThemes,
     ImmutableArray<XamlIncludeDefinition> Includes,
+    ImmutableArray<XamlCodeBlockDefinition> CodeBlocks,
     bool IsValid)
 {
     public bool IsClassBacked => !string.IsNullOrWhiteSpace(ClassFullName);

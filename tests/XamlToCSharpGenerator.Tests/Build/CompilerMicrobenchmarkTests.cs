@@ -4862,6 +4862,7 @@ public sealed class CompilerMicrobenchmarkTests
             Styles: ImmutableArray<XamlStyleDefinition>.Empty,
             ControlThemes: ImmutableArray<XamlControlThemeDefinition>.Empty,
             Includes: includes,
+            CodeBlocks: ImmutableArray<XamlCodeBlockDefinition>.Empty,
             IsValid: true);
     }
 

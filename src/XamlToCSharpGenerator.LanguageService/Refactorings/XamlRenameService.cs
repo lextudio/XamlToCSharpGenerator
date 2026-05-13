@@ -1617,7 +1617,7 @@ internal sealed class XamlRenameService
             return XamlWorkspaceEdit.Empty;
         }
 
-        var uri = UriPathHelper.ToDocumentUri(analysis.Document.FilePath);
+        var uri = analysis.Document.Uri;
         var builder = ImmutableArray.CreateBuilder<XamlDocumentTextEdit>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 

@@ -282,10 +282,10 @@ public sealed class XamlReferenceService
         {
             foreach (var range in XamlNavigationTextSemantics.FindElementReferenceRanges(analysis.Document.Text, identifier))
             {
-                if (seen.Add(CreateReferenceIdentity(UriPathHelper.ToDocumentUri(analysis.Document.FilePath), range)))
+                if (seen.Add(CreateReferenceIdentity(analysis.Document.Uri, range)))
                 {
                     resultBuilder.Add(new XamlReferenceLocation(
-                        UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                        analysis.Document.Uri,
                         range,
                         IsDeclaration: false));
                 }
@@ -309,10 +309,10 @@ public sealed class XamlReferenceService
                                      attribute,
                                      identifier))
                         {
-                            if (seen.Add(CreateReferenceIdentity(UriPathHelper.ToDocumentUri(analysis.Document.FilePath), range)))
+                            if (seen.Add(CreateReferenceIdentity(analysis.Document.Uri, range)))
                             {
                                 resultBuilder.Add(new XamlReferenceLocation(
-                                    UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                                    analysis.Document.Uri,
                                     range,
                                     IsDeclaration: false));
                             }
@@ -325,10 +325,10 @@ public sealed class XamlReferenceService
         {
             foreach (var range in XamlNavigationTextSemantics.FindResourceReferenceRanges(analysis.Document.Text, identifier))
             {
-                if (seen.Add(CreateReferenceIdentity(UriPathHelper.ToDocumentUri(analysis.Document.FilePath), range)))
+                if (seen.Add(CreateReferenceIdentity(analysis.Document.Uri, range)))
                 {
                     resultBuilder.Add(new XamlReferenceLocation(
-                        UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                        analysis.Document.Uri,
                         range,
                         IsDeclaration: false));
                 }
@@ -1652,7 +1652,7 @@ public sealed class XamlReferenceService
             AddReference(
                 builder,
                 seen,
-                UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                analysis.Document.Uri,
                 new SourceRange(
                     TextCoordinateHelper.GetPosition(analysis.Document.Text, startOffset),
                     TextCoordinateHelper.GetPosition(analysis.Document.Text, startOffset + occurrence.Length)),
@@ -2119,7 +2119,7 @@ public sealed class XamlReferenceService
         var currentFilePath = NormalizePath(analysis.Document.FilePath);
         yield return new XamlProjectSourceFile(
             currentFilePath,
-            UriPathHelper.ToDocumentUri(currentFilePath),
+            analysis.Document.Uri,
             analysis.Document.Text,
             analysis.XmlDocument,
             XmlParsed: true);
@@ -3213,7 +3213,7 @@ public sealed class XamlReferenceService
 
             var range = CreateRange(namedElement.Line, namedElement.Column, identifier.Length);
             builder.Add(new XamlReferenceLocation(
-                UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                analysis.Document.Uri,
                 range,
                 IsDeclaration: true));
             added++;
@@ -3231,7 +3231,7 @@ public sealed class XamlReferenceService
         foreach (var range in XamlResourceDeclarationRangeService.FindDeclarationRanges(analysis, identifier))
         {
             builder.Add(new XamlReferenceLocation(
-                UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                analysis.Document.Uri,
                 range,
                 IsDeclaration: true));
             added++;

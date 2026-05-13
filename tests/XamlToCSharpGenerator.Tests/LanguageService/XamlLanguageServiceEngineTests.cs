@@ -41,7 +41,7 @@ public sealed class XamlLanguageServiceEngineTests
             "    <TextBlock Text=\"Hello\" />\n" +
             "  </StackPanel>\n" +
             "</UserControl>",
-            edit.NewText);
+            edit.NewText.Replace("\r\n", "\n"));
     }
 
     [Fact]
@@ -4461,7 +4461,7 @@ public sealed class XamlLanguageServiceEngineTests
                 line++;
                 character = 0;
             }
-            else
+            else if (text[index] != '\r')
             {
                 character++;
             }

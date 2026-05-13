@@ -172,6 +172,7 @@ public class CompilerHostConventionInferenceTests
             Styles: ImmutableArray<XamlStyleDefinition>.Empty,
             ControlThemes: ImmutableArray<XamlControlThemeDefinition>.Empty,
             Includes: ImmutableArray<XamlIncludeDefinition>.Empty,
+            CodeBlocks: ImmutableArray<XamlCodeBlockDefinition>.Empty,
             IsValid: true);
     }
 }

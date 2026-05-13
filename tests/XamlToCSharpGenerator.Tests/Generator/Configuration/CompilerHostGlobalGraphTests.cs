@@ -218,6 +218,7 @@ public class CompilerHostGlobalGraphTests
             Styles: ImmutableArray<XamlStyleDefinition>.Empty,
             ControlThemes: ImmutableArray<XamlControlThemeDefinition>.Empty,
             Includes: includes.IsDefault ? ImmutableArray<XamlIncludeDefinition>.Empty : includes,
+            CodeBlocks: ImmutableArray<XamlCodeBlockDefinition>.Empty,
             IsValid: true);
     }
 }

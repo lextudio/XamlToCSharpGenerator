@@ -30,7 +30,7 @@ public sealed class XamlDefinitionService
                 return
                 [
                     new XamlDefinitionLocation(
-                        UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                        analysis.Document.Uri,
                         inlineDeclarationRange)
                 ];
             }
@@ -101,7 +101,7 @@ public sealed class XamlDefinitionService
             var end = new SourcePosition(start.Line, start.Character + Math.Max(1, namedElement.Name.Length));
 
             builder.Add(new XamlDefinitionLocation(
-                UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                analysis.Document.Uri,
                 new SourceRange(start, end)));
         }
 
@@ -116,7 +116,7 @@ public sealed class XamlDefinitionService
         foreach (var range in XamlResourceDeclarationRangeService.FindDeclarationRanges(analysis, identifier))
         {
             builder.Add(new XamlDefinitionLocation(
-                UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                analysis.Document.Uri,
                 range));
         }
 

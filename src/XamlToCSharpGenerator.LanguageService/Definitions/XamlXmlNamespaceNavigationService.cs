@@ -47,7 +47,7 @@ internal static class XamlXmlNamespaceNavigationService
                 }
 
                 definitionLocation = new XamlDefinitionLocation(
-                    UriPathHelper.ToDocumentUri(analysis.Document.FilePath),
+                    analysis.Document.Uri,
                     prefixRange);
                 return true;
             }

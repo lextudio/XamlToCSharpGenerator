@@ -36,7 +36,7 @@ public sealed class MsBuildCompilationProvider : ICompilationProvider
     public MsBuildCompilationProvider()
     {
         RegisterMsBuildLocator();
-        _workspace = MSBuildWorkspace.Create();
+        _workspace = MSBuildWorkspace.Create(CreateWorkspaceProperties());
     }
 
     public Task<CompilationSnapshot> GetCompilationAsync(
@@ -468,6 +468,24 @@ public sealed class MsBuildCompilationProvider : ICompilationProvider
 
             _locatorRegistered = true;
         }
+    }
+
+    private static Dictionary<string, string> CreateWorkspaceProperties()
+    {
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["DesignTimeBuild"] = "true",
+            ["BuildingProject"] = "false",
+            ["SkipCompilerExecution"] = "true",
+            ["ProvideCommandLineArgs"] = "true",
+        };
+
+        if (!OperatingSystem.IsWindows())
+        {
+            properties["EnableWindowsTargeting"] = "true";
+        }
+
+        return properties;
     }
 
     private static string NormalizePath(string path)

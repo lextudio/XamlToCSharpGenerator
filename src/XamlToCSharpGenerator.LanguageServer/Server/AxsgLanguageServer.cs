@@ -567,6 +567,21 @@ public sealed class AxsgLanguageServer : IDisposable
         }
     }
 
+    /// <summary>
+    /// Re-runs diagnostics for every currently open document and republishes them to the
+    /// client. Intended for callers (e.g. a tiered-compilation prewarm-completed callback)
+    /// that have already invalidated stale analysis caches — such as via
+    /// <c>XamlLanguageServiceEngine.InvalidateAllOpenDocumentCaches</c> — and need the client's
+    /// existing diagnostics collection to catch up rather than waiting for the next edit.
+    /// </summary>
+    public void RefreshOpenDocumentDiagnostics()
+    {
+        foreach (var (uri, state) in _openDocuments)
+        {
+            QueueDiagnosticsUpdate(uri, state.Version);
+        }
+    }
+
     private void QueueDiagnosticsUpdate(string uri, int expectedVersion)
     {
         var tokenSource = new CancellationTokenSource();

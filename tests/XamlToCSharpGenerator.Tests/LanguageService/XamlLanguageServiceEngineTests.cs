@@ -1338,6 +1338,54 @@ public sealed class XamlLanguageServiceEngineTests
     }
 
     [Fact]
+    public async Task InvalidateAllOpenDocumentCaches_ForcesReanalysis_OfSameDocumentVersion()
+    {
+        // Simulates the Tier-1 -> Tier-2 upgrade: TieredCompilationProvider.PrewarmAsync
+        // calls XamlLanguageServiceEngine.InvalidateAllOpenDocumentCaches() once the full
+        // MSBuild compilation is ready, so a same-version request afterward must re-analyze
+        // rather than keep returning the stale Tier-1-derived analysis cache entry.
+        var countingProvider = new CountingCompilationProvider(
+            new InMemoryCompilationProvider(LanguageServiceTestCompilationFactory.CreateCompilation()));
+        using var engine = new XamlLanguageServiceEngine(countingProvider);
+        const string uri = "file:///tmp/TieredUpgradeView.axaml";
+        const string xaml = "<UserControl xmlns=\"https://github.com/avaloniaui\" />";
+        var options = new XamlLanguageServiceOptions("/tmp", IncludeCompilationDiagnostics: true, IncludeSemanticDiagnostics: true);
+
+        await engine.OpenDocumentAsync(uri, xaml, version: 1, options, CancellationToken.None);
+        Assert.Equal(1, countingProvider.GetCompilationCalls);
+
+        // Same document version, no invalidation yet: served from the analysis cache,
+        // the compilation is not fetched again.
+        await engine.GetDiagnosticsAsync(uri, options, CancellationToken.None);
+        Assert.Equal(1, countingProvider.GetCompilationCalls);
+
+        // This is what TieredCompilationProvider's OnPrewarmCompleted callback triggers.
+        engine.InvalidateAllOpenDocumentCaches();
+
+        // Still the same document version — but the cache entry must now be considered
+        // stale, forcing a real re-analysis (and thus another compilation fetch) rather
+        // than returning the Tier-1-cached result for that version again.
+        await engine.GetDiagnosticsAsync(uri, options, CancellationToken.None);
+        Assert.Equal(2, countingProvider.GetCompilationCalls);
+
+        // And it settles back into being cached again for subsequent requests at
+        // the same (still-unchanged) document version.
+        await engine.GetDiagnosticsAsync(uri, options, CancellationToken.None);
+        Assert.Equal(2, countingProvider.GetCompilationCalls);
+    }
+
+    [Fact]
+    public void InvalidateAllOpenDocumentCaches_WithNoOpenDocuments_DoesNotThrow()
+    {
+        using var engine = new XamlLanguageServiceEngine(
+            new InMemoryCompilationProvider(LanguageServiceTestCompilationFactory.CreateCompilation()));
+
+        var exception = Record.Exception(() => engine.InvalidateAllOpenDocumentCaches());
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
     public async Task SemanticTokens_AreStableForSameVersion_AndRefreshAfterUpdate()
     {
         using var engine = new XamlLanguageServiceEngine(

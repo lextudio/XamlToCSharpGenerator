@@ -14,6 +14,7 @@
     <ProjectReference Include="..\XamlToCSharpGenerator.LanguageService.Framework.Wpf\XamlToCSharpGenerator.LanguageService.Framework.Wpf.csproj" />
     <ProjectReference Include="..\XamlToCSharpGenerator.LanguageService.Framework.WinUI\XamlToCSharpGenerator.LanguageService.Framework.WinUI.csproj" />
     <ProjectReference Include="..\XamlToCSharpGenerator.LanguageService.Framework.Maui\XamlToCSharpGenerator.LanguageService.Framework.Maui.csproj" />
+    <ProjectReference Include="..\XamlToCSharpGenerator.LanguageService.Framework.Uno\XamlToCSharpGenerator.LanguageService.Framework.Uno.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(ApiDocumentationBuild)' == 'true'">
@@ -39,6 +40,10 @@
     </Reference>
     <Reference Include="XamlToCSharpGenerator.LanguageService.Framework.Maui">
       <HintPath>..\XamlToCSharpGenerator.LanguageService.Framework.Maui\bin\$(Configuration)\net10.0\XamlToCSharpGenerator.LanguageService.Framework.Maui.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="XamlToCSharpGenerator.LanguageService.Framework.Uno">
+      <HintPath>..\XamlToCSharpGenerator.LanguageService.Framework.Uno\bin\$(Configuration)\net10.0\XamlToCSharpGenerator.LanguageService.Framework.Uno.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

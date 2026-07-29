@@ -30,11 +30,12 @@ public sealed class XamlLanguageServiceMultiFrameworkTests
     {
         var registry = XamlBuiltInLanguageFrameworkRegistry.Create();
 
-        Assert.Equal(4, registry.Providers.Length);
+        Assert.Equal(5, registry.Providers.Length);
         Assert.True(registry.TryGetById(FrameworkProfileIds.Avalonia, out _));
         Assert.True(registry.TryGetById(FrameworkProfileIds.Wpf, out _));
         Assert.True(registry.TryGetById(FrameworkProfileIds.WinUI, out _));
         Assert.True(registry.TryGetById(FrameworkProfileIds.Maui, out _));
+        Assert.True(registry.TryGetById(FrameworkProfileIds.Uno, out _));
     }
 
     [Fact]

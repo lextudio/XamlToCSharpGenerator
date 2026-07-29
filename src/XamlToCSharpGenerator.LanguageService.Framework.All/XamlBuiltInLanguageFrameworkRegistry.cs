@@ -1,6 +1,7 @@
 using XamlToCSharpGenerator.Core.Models;
 using XamlToCSharpGenerator.LanguageService.Framework.Avalonia;
 using XamlToCSharpGenerator.LanguageService.Framework.Maui;
+using XamlToCSharpGenerator.LanguageService.Framework.Uno;
 using XamlToCSharpGenerator.LanguageService.Framework.WinUI;
 using XamlToCSharpGenerator.LanguageService.Framework.Wpf;
 
@@ -15,6 +16,7 @@ public static class XamlBuiltInLanguageFrameworkRegistry
         return new XamlLanguageFrameworkRegistryBuilder()
             .Add(AvaloniaLanguageFrameworkProvider.Instance)
             .Add(MauiLanguageFrameworkProvider.Instance)
+            .Add(UnoLanguageFrameworkProvider.Instance)
             .Add(WinUiLanguageFrameworkProvider.Instance)
             .Add(WpfLanguageFrameworkProvider.Instance)
             .Build(FrameworkProfileIds.Avalonia);

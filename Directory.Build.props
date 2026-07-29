@@ -22,8 +22,20 @@
     <AvaloniaVersion Condition="'$(AvaloniaVersion)' == ''">11.3.12</AvaloniaVersion>
     <AvaloniaEditVersion Condition="'$(AvaloniaEditVersion)' == ''">11.4.1</AvaloniaEditVersion>
     <AvaloniaEditTextMateVersion Condition="'$(AvaloniaEditTextMateVersion)' == ''">11.4.1</AvaloniaEditTextMateVersion>
-    <MicrosoftCodeAnalysisVersion Condition="'$(MicrosoftCodeAnalysisVersion)' == ''">4.10.0</MicrosoftCodeAnalysisVersion>
-    <MicrosoftExtensionsLoggingVersion Condition="'$(MicrosoftExtensionsLoggingVersion)' == ''">8.0.1</MicrosoftExtensionsLoggingVersion>
+    <!-- Bumped from 4.10.0: UnoDevelop's own central package management pins
+         Microsoft.CodeAnalysis.* at 5.3.0 for its Roslyn C#/VB language service, and NuGet
+         resolves the actual Microsoft.CodeAnalysis.Common/Workspaces.Common versions across
+         the WHOLE graph in any build that references this project from UnoDevelop (5.3.0
+         wins). Left at 4.10.0, Microsoft.CodeAnalysis.Workspaces.MSBuild's 4.10.0 binary loads
+         against the 5.3.0 Common assemblies, and the resulting internal API mismatch throws
+         System.MissingMethodException at runtime the moment MSBuildWorkspace actually opens a
+         project - silently swallowed by MsBuildCompilationProvider's catch-all, which is why
+         this went unnoticed until a real Uno.Sdk fixture project was opened from
+         XamlLanguageServer.Uno (UnoDevelop's Uno/WinUI language server host). -->
+    <MicrosoftCodeAnalysisVersion Condition="'$(MicrosoftCodeAnalysisVersion)' == ''">5.3.0</MicrosoftCodeAnalysisVersion>
+    <!-- Cascades from the bump above: Microsoft.CodeAnalysis.Workspaces.MSBuild 5.3.0 requires
+         Microsoft.Extensions.Logging >= 9.0.0. -->
+    <MicrosoftExtensionsLoggingVersion Condition="'$(MicrosoftExtensionsLoggingVersion)' == ''">9.0.0</MicrosoftExtensionsLoggingVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsPackable)' == 'true'">

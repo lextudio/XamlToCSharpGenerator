@@ -199,6 +199,11 @@ public sealed class MsBuildCompilationProvider : ICompilationProvider
         }
         catch (Exception ex)
         {
+            // Surface the real exception (not just ex.Message, embedded below in the returned
+            // diagnostic) to stderr - a version-mismatch MissingMethodException from
+            // MSBuildWorkspace, for example, previously had no visible signal anywhere and was
+            // only found by instrumenting this exact catch block by hand.
+            Console.Error.WriteLine("[AXSG-LS] MsBuildCompilationProvider: " + ex);
             return new CompilationSnapshot(
                 projectPath,
                 null,

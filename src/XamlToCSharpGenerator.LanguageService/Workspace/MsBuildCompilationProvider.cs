@@ -27,6 +27,7 @@ public sealed class MsBuildCompilationProvider : ICompilationProvider
         "Found project reference without a matching metadata reference:";
 
     private readonly MSBuildWorkspace _workspace;
+    private readonly InMemoryAnalyzerAssemblyLoader _analyzerLoader = new();
     private readonly XamlLanguageFrameworkRegistry _frameworkRegistry;
     private readonly SemaphoreSlim _workspaceGate = new(1, 1);
     private readonly ConcurrentDictionary<string, Lazy<Task<CompilationSnapshot>>> _projectCompilationCache =
@@ -153,6 +154,7 @@ public sealed class MsBuildCompilationProvider : ICompilationProvider
                 _workspaceGate.Release();
             }
 
+            project = _analyzerLoader.Apply(project);
             var compilation = await project.GetCompilationAsync(CancellationToken.None).ConfigureAwait(false);
             if (compilation is null)
             {

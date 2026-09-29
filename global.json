@@ -1,6 +1,10 @@
 {
   "sdk": {
     "version": "10.0.200",
-    "rollForward": "disable"
+    // "disable" pinned the build to one exact SDK band, so any machine with a different
+    // 10.0.2xx feature band failed before restore with "Install the [10.0.200] .NET SDK".
+    // Feature-band roll-forward keeps the pin meaningful (still 10.0.2xx) while letting a
+    // newer patch of the same band build this tree.
+    "rollForward": "latestFeature"
   }
 }

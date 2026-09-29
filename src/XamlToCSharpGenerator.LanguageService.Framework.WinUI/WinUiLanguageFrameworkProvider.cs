@@ -27,11 +27,34 @@ public sealed class WinUiLanguageFrameworkProvider : IXamlLanguageFrameworkProvi
                     "Content",
                     "None",
                     "AdditionalFiles"
+                ],
+                // The WinUI XAML compiler maps the presentation xmlns to these namespaces
+                // implicitly: Microsoft.WinUI.dll carries no XmlnsDefinition for it, so without
+                // this list a project's real WinUI compilation indexed no control at all.
+                tier1SeedClrNamespaces:
+                [
+                    "Microsoft.UI.Xaml",
+                    "Microsoft.UI.Xaml.Automation",
+                    "Microsoft.UI.Xaml.Automation.Peers",
+                    "Microsoft.UI.Xaml.Controls",
+                    "Microsoft.UI.Xaml.Controls.Primitives",
+                    "Microsoft.UI.Xaml.Data",
+                    "Microsoft.UI.Xaml.Documents",
+                    "Microsoft.UI.Xaml.Input",
+                    "Microsoft.UI.Xaml.Media",
+                    "Microsoft.UI.Xaml.Media.Animation",
+                    "Microsoft.UI.Xaml.Media.Imaging",
+                    "Microsoft.UI.Xaml.Media.Media3D",
+                    "Microsoft.UI.Xaml.Navigation",
+                    "Microsoft.UI.Xaml.Shapes"
                 ]),
             DefaultXmlNamespace: PresentationXmlNamespace,
             XmlnsDefinitionAttributeMetadataNames:
             [
-                "Microsoft.UI.Xaml.Markup.XmlnsDefinitionAttribute"
+                "Microsoft.UI.Xaml.Markup.XmlnsDefinitionAttribute",
+                // Uno.UI's name for it. A host without the Windows App SDK serves WinUI's
+                // Microsoft.UI.Xaml API from Uno's assemblies, whose mapping uses this attribute.
+                "Microsoft.UI.Xaml.XmlnsDefinitionAttribute"
             ],
             XmlnsPrefixAttributeMetadataNames:
             [

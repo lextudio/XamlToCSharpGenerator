@@ -69,14 +69,29 @@ public sealed class AvaloniaTypeIndex
         Compilation compilation,
         ImmutableDictionary<string, ImmutableArray<AvaloniaTypeInfo>> xmlNamespaceTypes)
     {
-        if (compilation is null || xmlNamespaceTypes.IsEmpty)
+        return TryPrimeCache(
+            compilation,
+            XamlBuiltInLanguageFrameworkRegistry.Instance.TryGetById(FrameworkProfileIds.Avalonia, out var avaloniaFramework)
+                ? avaloniaFramework
+                : XamlBuiltInLanguageFrameworkRegistry.Instance.DefaultFramework,
+            xmlNamespaceTypes);
+    }
+
+    /// <summary>
+    /// Primes the index for <paramref name="framework"/>. The per-compilation cache is keyed by
+    /// framework id, so a host serving a framework other than Avalonia must prime (and create)
+    /// under that framework: priming under the Avalonia key leaves the index the analysis actually
+    /// asks for - <c>Create(compilation, framework)</c> - unprimed, and rebuilt from scratch.
+    /// </summary>
+    public static bool TryPrimeCache(
+        Compilation compilation,
+        XamlLanguageFrameworkInfo framework,
+        ImmutableDictionary<string, ImmutableArray<AvaloniaTypeInfo>> xmlNamespaceTypes)
+    {
+        if (compilation is null || framework is null || xmlNamespaceTypes.IsEmpty)
         {
             return false;
         }
-
-        var framework = XamlBuiltInLanguageFrameworkRegistry.Instance.TryGetById(FrameworkProfileIds.Avalonia, out var avaloniaFramework)
-            ? avaloniaFramework
-            : XamlBuiltInLanguageFrameworkRegistry.Instance.DefaultFramework;
 
         lock (CacheSync)
         {
@@ -741,6 +756,17 @@ public sealed class AvaloniaTypeIndex
 
                 setBuilder.Add(clrNamespace);
             }
+        }
+
+        // A framework whose assemblies do not map its presentation xmlns themselves (WinUI: the
+        // mapping is implicit in its XAML compiler) names the namespaces in its profile instead.
+        // Attribute metadata still wins wherever an assembly does provide it.
+        var seeds = framework.Profile.Tier1SeedClrNamespaces;
+        if (!seeds.IsDefaultOrEmpty && !map.ContainsKey(framework.DefaultXmlNamespace))
+        {
+            var seeded = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
+            seeded.UnionWith(seeds);
+            map[framework.DefaultXmlNamespace] = seeded;
         }
 
         var immutableMap = ImmutableDictionary.CreateBuilder<string, ImmutableHashSet<string>>(StringComparer.Ordinal);

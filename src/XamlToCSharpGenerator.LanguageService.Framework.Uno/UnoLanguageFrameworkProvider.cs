@@ -55,7 +55,10 @@ public sealed class UnoLanguageFrameworkProvider : IXamlLanguageFrameworkProvide
             [
                 "Microsoft.UI.Xaml.Markup.XmlnsDefinitionAttribute",
                 // Uno.UI still ships the UWP-era attribute for compatibility.
-                "Windows.UI.Xaml.Markup.XmlnsDefinitionAttribute"
+                "Windows.UI.Xaml.Markup.XmlnsDefinitionAttribute",
+                // What Uno.UI 6.x actually declares and applies to map the presentation xmlns to
+                // Microsoft.UI.Xaml.*; with only the two names above, no Uno control was indexed.
+                "Microsoft.UI.Xaml.XmlnsDefinitionAttribute"
             ],
             XmlnsPrefixAttributeMetadataNames:
             [

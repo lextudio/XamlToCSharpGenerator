@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
 
 namespace XamlToCSharpGenerator.LanguageService.Workspace;
 
@@ -50,6 +53,9 @@ public sealed class TieredCompilationProvider : ICompilationProvider
     // Optional Tier-1 snapshot supplied by the framework-specific server.
     private readonly CompilationSnapshot? _fastSnapshot;
 
+    // What the full compilation lacks that Tier 1 offers; see the constructor.
+    private readonly Func<Compilation, ImmutableArray<string>> _fastSnapshotGaps;
+
     // Set to true once the background load succeeds.  Volatile so the write
     // from the prewarm task is immediately visible on the request thread.
     private volatile bool _fullProviderReady;
@@ -69,13 +75,23 @@ public sealed class TieredCompilationProvider : ICompilationProvider
     ///   is loading.  Pass <see langword="null"/> to skip Tier 1 (the provider
     ///   will still prewarm the full compilation in the background).
     /// </param>
+    /// <param name="fastSnapshotGaps">
+    ///   Optional: what the full compilation lacks that Tier 1 offers (empty = it may replace
+    ///   Tier 1). Defaults to <see cref="MissingFastSnapshotAssemblies"/>. A host whose Tier 1 is a
+    ///   stand-in - WinUI served from Uno's assemblies - supplies its own check, because the real
+    ///   project never references the stand-in's assemblies and would otherwise never upgrade.
+    /// </param>
     public TieredCompilationProvider(
         ICompilationProvider fullProvider,
-        CompilationSnapshot? fastSnapshot = null)
+        CompilationSnapshot? fastSnapshot = null,
+        Func<Compilation, ImmutableArray<string>>? fastSnapshotGaps = null)
     {
         _fullProvider = fullProvider ?? throw new ArgumentNullException(nameof(fullProvider));
         _fastSnapshot = fastSnapshot;
+        _fastSnapshotGaps = fastSnapshotGaps
+                            ?? (full => MissingFastSnapshotAssemblies(full, fastSnapshot?.Compilation));
     }
+
 
     // -------------------------------------------------------------------------
     // ICompilationProvider
@@ -141,7 +157,20 @@ public sealed class TieredCompilationProvider : ICompilationProvider
                     .GetCompilationAsync(projectFileOrPath, workspaceRoot, CancellationToken.None)
                     .ConfigureAwait(false);
 
-                if (snapshot.Compilation is not null)
+                var missing = snapshot.Compilation is null
+                    ? ImmutableArray<string>.Empty
+                    : _fastSnapshot is null ? ImmutableArray<string>.Empty : _fastSnapshotGaps(snapshot.Compilation);
+                if (snapshot.Compilation is not null && !missing.IsEmpty)
+                {
+                    // A project that has not been restored (or whose evaluation failed part-way)
+                    // still yields a Compilation, just without its framework's assemblies.
+                    // Upgrading to it replaced a working Tier 1 with one in which no control
+                    // resolves, so every completion went empty the moment prewarm finished.
+                    Console.Error.WriteLine(
+                        "[AXSG-LS] Prewarm: full compilation lacks what Tier 1 offers (" +
+                        string.Join(", ", missing) + "); staying on Tier 1.");
+                }
+                else if (snapshot.Compilation is not null)
                 {
                     _fullProviderReady = true;
                     Console.Error.WriteLine(
@@ -160,6 +189,32 @@ public sealed class TieredCompilationProvider : ICompilationProvider
             }
         });
     }
+
+    /// <summary>
+    /// Names of assemblies the Tier-1 compilation references that <paramref name="full"/> does
+    /// not. Empty means the full compilation can see at least everything Tier 1 could, so upgrading
+    /// cannot lose a type; no fast compilation means there is nothing to lose.
+    /// </summary>
+    public static ImmutableArray<string> MissingFastSnapshotAssemblies(Compilation full, Compilation? fast)
+    {
+        if (fast is null)
+        {
+            return ImmutableArray<string>.Empty;
+        }
+
+        var fullNames = new HashSet<string>(ReferencedAssemblyNames(full), StringComparer.OrdinalIgnoreCase);
+        return ReferencedAssemblyNames(fast)
+            .Where(name => !fullNames.Contains(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static name => name, StringComparer.Ordinal)
+            .ToImmutableArray();
+    }
+
+    private static IEnumerable<string> ReferencedAssemblyNames(Compilation compilation) =>
+        compilation.References
+            .Select(compilation.GetAssemblyOrModuleSymbol)
+            .OfType<IAssemblySymbol>()
+            .Select(static assembly => assembly.Identity.Name);
 
     // -------------------------------------------------------------------------
     // Workspace discovery helper

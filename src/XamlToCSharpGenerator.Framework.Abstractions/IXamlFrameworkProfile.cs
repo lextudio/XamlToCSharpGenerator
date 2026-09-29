@@ -33,6 +33,11 @@ public interface IXamlFrameworkProfile
     /// serves any server that builds a Tier-1 snapshot for this profile. An empty array means "no
     /// synthetic map is needed", which is correct for frameworks whose reference assemblies expose
     /// complete xmlns metadata on their own.
+    /// <para>
+    /// The language service's type index also falls back to this list when no assembly of a
+    /// compilation maps the presentation namespace at all - the case for a framework whose mapping
+    /// is implicit in its XAML compiler rather than declared in metadata (WinUI).
+    /// </para>
     /// </summary>
     ImmutableArray<string> Tier1SeedClrNamespaces { get; }
 }

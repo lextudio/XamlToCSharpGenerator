@@ -29,6 +29,23 @@ public sealed class WpfLanguageFrameworkProvider : IXamlLanguageFrameworkProvide
                     "Content",
                     "None",
                     "AdditionalFiles"
+                ],
+                // WPF reference assemblies do not reliably expose enough
+                // XmlnsDefinitionAttribute metadata during Tier-1 startup, so the WPF language
+                // server seeds a synthetic xmlns map for these to guarantee core control
+                // completions before the project's own packages load. Declared here so the list
+                // belongs to the framework rather than to one server's source.
+                tier1SeedClrNamespaces:
+                [
+                    "System.Windows",
+                    "System.Windows.Controls",
+                    "System.Windows.Controls.Primitives",
+                    "System.Windows.Data",
+                    "System.Windows.Documents",
+                    "System.Windows.Input",
+                    "System.Windows.Media",
+                    "System.Windows.Navigation",
+                    "System.Windows.Shapes"
                 ]),
             DefaultXmlNamespace: PresentationXmlNamespace,
             XmlnsDefinitionAttributeMetadataNames:

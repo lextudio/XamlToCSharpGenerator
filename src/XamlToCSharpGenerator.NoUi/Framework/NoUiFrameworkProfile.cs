@@ -28,6 +28,10 @@ public sealed class NoUiFrameworkProfile : IXamlFrameworkProfile
 
     public IXamlFrameworkBuildContract BuildContract => BuildContractInstance;
 
+    // Avalonia's reference assemblies expose complete xmlns metadata and the engine builds a
+    // full CLR-namespace type index, so no synthetic Tier-1 xmlns map is seeded.
+    public ImmutableArray<string> Tier1SeedClrNamespaces => ImmutableArray<string>.Empty;
+
     public IXamlFrameworkTransformProvider TransformProvider => TransformProviderInstance;
 
     public IXamlFrameworkSemanticBinder CreateSemanticBinder()

@@ -22,16 +22,22 @@ public sealed class PassiveXamlFrameworkProfile : IXamlFrameworkProfile
         string id,
         string defaultXmlNamespace,
         string preferredProjectXamlItemName,
-        ImmutableArray<string> projectXamlItemNames)
+        ImmutableArray<string> projectXamlItemNames,
+        ImmutableArray<string> tier1SeedClrNamespaces = default)
     {
         Id = id;
         DefaultXmlNamespace = defaultXmlNamespace;
+        Tier1SeedClrNamespaces = tier1SeedClrNamespaces.IsDefault
+            ? ImmutableArray<string>.Empty
+            : tier1SeedClrNamespaces;
         _buildContract = new PassiveBuildContract(preferredProjectXamlItemName, projectXamlItemNames);
     }
 
     public string Id { get; }
 
     public string DefaultXmlNamespace { get; }
+
+    public ImmutableArray<string> Tier1SeedClrNamespaces { get; }
 
     public IXamlFrameworkBuildContract BuildContract => _buildContract;
 
